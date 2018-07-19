@@ -2,3 +2,8 @@
 venv/
 alexnet_data_in/
 tiny-imagenet-200.zip
+
+## c3dl-specific
+run.sh
+train.sh
+alexnet.json
