@@ -1,2 +1,4 @@
 ## Python
 venv/
+alexnet_data_in/
+tiny-imagenet-200.zip

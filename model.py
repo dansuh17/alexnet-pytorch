@@ -1,4 +1,7 @@
 import torch
+import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+from torch.utils import data
 import torch.nn as nn
 
 
@@ -48,3 +51,16 @@ print(alexnet)
 print(a.size())
 out = alexnet(a)
 print(out.size())
+
+
+traindir = 'alexnet_data_in/tiny-imagenet-200/train'
+imagenet_dataset = datasets.ImageFolder(traindir, transforms.Compose([
+    transforms.RandomResizedCrop(227),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+]))
+imagenet_dataloader = data.DataLoader(imagenet_dataset, shuffle=True, batch_size=4)
+
+for img_batch in imagenet_dataset:
+    print(img_batch[1])
