@@ -23,8 +23,9 @@ LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
 NUM_CLASSES = 200  # 200 classes for tiny imagenet
+DEVICE_IDS = [0, 1]  # GPUs to use
+# modify this to point to your data directory
 TRAIN_IMG_DIR = 'alexnet_data_in/tiny-imagenet-200/train'
-DEVICE_IDS = [0, 1]
 
 
 class AlexNet(nn.Module):
