@@ -1,8 +1,10 @@
 import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils import data
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-from torch.utils import data
-import torch.nn as nn
 
 
 class AlexNet(nn.Module):
@@ -60,7 +62,23 @@ imagenet_dataset = datasets.ImageFolder(traindir, transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ]))
-imagenet_dataloader = data.DataLoader(imagenet_dataset, shuffle=True, batch_size=4)
+print('Dataset created')
 
-for img_batch in imagenet_dataset:
-    print(img_batch[1])
+imagenet_dataloader = data.DataLoader(
+    imagenet_dataset,
+    shuffle=True,
+    batch_size=64)
+print('Dataloader created')
+
+optimizer = optim.Adam(alexnet.parameters(), lr=0.001)
+print('Optimizer created')
+
+print('Starting training...')
+for imgs, classes in imagenet_dataloader:
+    print(classes)
+    output_logits = alexnet(imgs)
+    optimizer.zero_grad()
+    loss = F.nll_loss(F.log_softmax(output_logits), target=classes)
+    print('Loss: {}'.format(loss.item()))
+    loss.backward()
+    optimizer.step()
