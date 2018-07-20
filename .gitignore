@@ -7,3 +7,4 @@ tiny-imagenet-200.zip
 run.sh
 train.sh
 alexnet.json
+user_dev_workspace/
