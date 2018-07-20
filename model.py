@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torch.utils import data
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+from tensorboardX import SummaryWriter
 
 # define pytorch device - useful for device-agnostic execution
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -26,6 +27,7 @@ NUM_CLASSES = 200  # 200 classes for tiny imagenet
 DEVICE_IDS = [0, 1]  # GPUs to use
 # modify this to point to your data directory
 TRAIN_IMG_DIR = 'alexnet_data_in/tiny-imagenet-200/train'
+OUTPUT_DIR = 'alexnet_data_out/tblogs'  # tensorboard logs
 
 
 class AlexNet(nn.Module):
@@ -84,11 +86,18 @@ class AlexNet(nn.Module):
         return self.classifier(x)
 
 
+def init_weights(m):
+    if isinstance(m, nn.Conv2d):
+        nn.init.xavier_normal_(m.weight)
+        nn.init.normal_(m.bias)
+
+
 if __name__ == '__main__':
     # create model
     alexnet = AlexNet(num_classes=200).to(device)
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
+    alexnet.apply(init_weights)
     print(alexnet)
     print('AlexNet created')
 
@@ -114,6 +123,9 @@ if __name__ == '__main__':
         weight_decay=LR_DECAY)
     print('Optimizer created')
 
+    tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
+    print('TensorboardX summary writer created')
+
     # start training!!
     print('Starting training...')
     total_steps = 1
@@ -125,7 +137,11 @@ if __name__ == '__main__':
             # calculate the loss
             output_logits = alexnet(imgs)
             loss = F.nll_loss(F.log_softmax(output_logits), target=classes)
-            print('Epoch: {} \tStep: {} \tLoss: {}'.format(epoch + 1, total_steps, loss.item()))
+
+            # log the information and add to tensorboard
+            if total_steps % 10 == 0:
+                print('Epoch: {} \tStep: {} \tLoss: {}'.format(epoch + 1, total_steps, loss.item()))
+                tbwriter.add_scalar('loss', loss.item(), total_steps)
 
             # update the parameters
             loss.backward()
