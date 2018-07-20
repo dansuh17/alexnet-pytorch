@@ -14,7 +14,7 @@ import torchvision.transforms as transforms
 from tensorboardX import SummaryWriter
 
 # define pytorch device - useful for device-agnostic execution
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # define model parameters
 NUM_EPOCHS = 90
