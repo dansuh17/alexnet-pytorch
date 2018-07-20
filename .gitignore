@@ -8,3 +8,4 @@ run.sh
 train.sh
 alexnet.json
 user_dev_workspace/
+log.log
