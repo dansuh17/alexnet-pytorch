@@ -17,13 +17,14 @@ from tensorboardX import SummaryWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # define model parameters
-NUM_EPOCHS = 90
+# NUM_EPOCHS = 90  # original paper
+NUM_EPOCHS = 200
 BATCH_SIZE = 128
 MOMENTUM = 0.9
 LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
-NUM_CLASSES = 200  # 200 classes for tiny imagenet
+NUM_CLASSES = 200  # 200 classes for tiny imagenet - 1000 for original imagenet
 DEVICE_IDS = [0, 1]  # GPUs to use
 # modify this to point to your data directory
 TRAIN_IMG_DIR = 'alexnet_data_in/tiny-imagenet-200/train'
@@ -88,8 +89,8 @@ class AlexNet(nn.Module):
 
 def init_weights(m):
     if isinstance(m, nn.Conv2d):
-        nn.init.xavier_normal_(m.weight)
-        nn.init.normal_(m.bias)
+        nn.init.normal_(m.weight, mean=0, std=0.01)
+        nn.init.constant_(m.bias, 1)
 
 
 if __name__ == '__main__':
@@ -112,7 +113,8 @@ if __name__ == '__main__':
     imagenet_dataloader = data.DataLoader(
         imagenet_dataset,
         shuffle=True,
-        batch_size=64)
+        pin_memory=True,
+        batch_size=BATCH_SIZE)
     print('Dataloader created')
 
     # create optimizer
@@ -123,6 +125,10 @@ if __name__ == '__main__':
         weight_decay=LR_DECAY)
     print('Optimizer created')
 
+    # multiply LR by 1 / 10 after every 30 epochs
+    lr_scheduler = optim.StepLR(optimizer, step_size=30, gamma=0.1)
+    print('LR Scheduler created')
+
     tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
     print('TensorboardX summary writer created')
 
@@ -130,17 +136,24 @@ if __name__ == '__main__':
     print('Starting training...')
     total_steps = 1
     for epoch in range(NUM_EPOCHS):
+        lr_scheduler.step()
         for imgs, classes in imagenet_dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
             optimizer.zero_grad()
 
             # calculate the loss
             output_logits = alexnet(imgs)
-            loss = F.nll_loss(F.log_softmax(output_logits), target=classes)
+            loss = F.cross_entropy(output_logits, classes)
+            # loss = F.nll_loss(F.log_softmax(output_logits, dim=1), target=classes)
 
             # log the information and add to tensorboard
             if total_steps % 10 == 0:
-                print('Epoch: {} \tStep: {} \tLoss: {}'.format(epoch + 1, total_steps, loss.item()))
+                _, preds = torch.max(output_logits, 1)
+                accuracy = torch.sum(preds == classes)
+
+                print('Epoch: {} \tStep: {} \tLoss: {} \tAcc: {}'
+                     .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
+                print(output_logits)
                 tbwriter.add_scalar('loss', loss.item(), total_steps)
 
             # update the parameters
