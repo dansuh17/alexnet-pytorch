@@ -1,6 +1,7 @@
 # AlexNet-pytorch
 
-This is an implementaiton of AlexNet, as introduced in the paper "ImageNet Classification with Deep Convolutional Neural Networks" by Alex Krizhevsky et al. It was also tested upon "Tiny ImageNet" dataset.
+This is an implementaiton of AlexNet, as introduced in the paper "ImageNet Classification with Deep Convolutional Neural Networks" by Alex Krizhevsky et al. ([original paper](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf))
+It was also tested upon "Tiny ImageNet" dataset.
 
 This was the first very successful CNN for image classification that led to breakout of deep learning 'hype', as well as the first successful example of utilizing dropout layers.
 
