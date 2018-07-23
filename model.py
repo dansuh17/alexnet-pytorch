@@ -49,9 +49,11 @@ class AlexNet(nn.Module):
         self.net = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=96, kernel_size=11, stride=4),  # (b x 96 x 55 x 55)
             nn.ReLU(),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),  # section 3.3
             nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 96 x 27 x 27)
             nn.Conv2d(96, 256, 5, padding=2),  # (b x 256 x 27 x 27)
             nn.ReLU(),
+            nn.LocalResponseNorm(size=5, alpha=0.0001, beta=0.75, k=2),
             nn.MaxPool2d(kernel_size=3, stride=2),  # (b x 256 x 13 x 13)
             nn.Conv2d(256, 384, 3, padding=1),  # (b x 384 x 13 x 13)
             nn.ReLU(),
@@ -126,7 +128,7 @@ if __name__ == '__main__':
     print('Optimizer created')
 
     # multiply LR by 1 / 10 after every 30 epochs
-    lr_scheduler = optim.StepLR(optimizer, step_size=30, gamma=0.1)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     print('LR Scheduler created')
 
     tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
@@ -142,18 +144,17 @@ if __name__ == '__main__':
             optimizer.zero_grad()
 
             # calculate the loss
-            output_logits = alexnet(imgs)
-            loss = F.cross_entropy(output_logits, classes)
+            output = alexnet(imgs)
+            loss = F.cross_entropy(output, classes)
             # loss = F.nll_loss(F.log_softmax(output_logits, dim=1), target=classes)
 
             # log the information and add to tensorboard
             if total_steps % 10 == 0:
-                _, preds = torch.max(output_logits, 1)
-                accuracy = torch.sum(preds == classes)
+                _, preds = torch.max(output, 1)
+                accuracy = torch.sum(preds == classes) / BATCH_SIZE
 
-                print('Epoch: {} \tStep: {} \tLoss: {} \tAcc: {}'
+                print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {:.4f}'
                      .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
-                print(output_logits)
                 tbwriter.add_scalar('loss', loss.item(), total_steps)
 
             # update the parameters
