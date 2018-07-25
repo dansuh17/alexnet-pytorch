@@ -17,17 +17,17 @@ from tensorboardX import SummaryWriter
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # define model parameters
-# NUM_EPOCHS = 90  # original paper
-NUM_EPOCHS = 200
+NUM_EPOCHS = 90  # original paper
 BATCH_SIZE = 128
 MOMENTUM = 0.9
 LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
-NUM_CLASSES = 200  # 200 classes for tiny imagenet - 1000 for original imagenet
+NUM_CLASSES = 20  # 20 classes for VOC dataset - 1000 for original imagenet
 DEVICE_IDS = [0, 1]  # GPUs to use
 # modify this to point to your data directory
-TRAIN_IMG_DIR = 'alexnet_data_in/tiny-imagenet-200/train'
+INPUT_ROOT_DIR = 'alexnet_data_in'
+TRAIN_IMG_DIR = 'alexnet_data_in/voc-data-rearr'
 OUTPUT_DIR = 'alexnet_data_out/tblogs'  # tensorboard logs
 
 
