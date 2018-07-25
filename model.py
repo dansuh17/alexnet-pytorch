@@ -21,7 +21,7 @@ NUM_EPOCHS = 90  # original paper
 BATCH_SIZE = 128
 MOMENTUM = 0.9
 LR_DECAY = 0.0005
-LR_INIT = 0.01
+LR_INIT = 0.1 # 0.01
 IMAGE_DIM = 227  # pixels
 NUM_CLASSES = 20  # 20 classes for VOC dataset - 1000 for original imagenet
 DEVICE_IDS = [0, 1]  # GPUs to use
@@ -67,10 +67,10 @@ class AlexNet(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(in_features=(256 * 6 * 6), out_features=4096),
             nn.ReLU(),
-            nn.Dropout2d(p=0.5, inplace=True),
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=4096, out_features=4096),
             nn.ReLU(),
-            nn.Dropout2d(p=0.5, inplace=True),
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=4096, out_features=num_classes),
         )
 
@@ -97,7 +97,7 @@ def init_weights(m):
 
 if __name__ == '__main__':
     # create model
-    alexnet = AlexNet(num_classes=200).to(device)
+    alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
     alexnet.apply(init_weights)
