@@ -21,13 +21,13 @@ NUM_EPOCHS = 90  # original paper
 BATCH_SIZE = 128
 MOMENTUM = 0.9
 LR_DECAY = 0.0005
-LR_INIT = 0.1 # 0.01
+LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
-NUM_CLASSES = 20  # 20 classes for VOC dataset - 1000 for original imagenet
+NUM_CLASSES = 1000  # 20 classes for VOC dataset - 1000 for original imagenet
 DEVICE_IDS = [0, 1]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = 'alexnet_data_in'
-TRAIN_IMG_DIR = 'alexnet_data_in/voc-data-rearr'
+TRAIN_IMG_DIR = 'alexnet_data_in/imagenet'
 OUTPUT_DIR = 'alexnet_data_out/tblogs'  # tensorboard logs
 
 
@@ -65,12 +65,12 @@ class AlexNet(nn.Module):
         )
         # classifier is just a name for linear layers
         self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=(256 * 6 * 6), out_features=4096),
             nn.ReLU(),
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=4096, out_features=4096),
             nn.ReLU(),
-            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=4096, out_features=num_classes),
         )
 
@@ -105,17 +105,18 @@ if __name__ == '__main__':
     print('AlexNet created')
 
     # create dataset and data loader
-    imagenet_dataset = datasets.ImageFolder(TRAIN_IMG_DIR, transforms.Compose([
+    dataset = datasets.ImageFolder(TRAIN_IMG_DIR, transforms.Compose([
         transforms.RandomResizedCrop(IMAGE_DIM),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]))
     print('Dataset created')
-    imagenet_dataloader = data.DataLoader(
-        imagenet_dataset,
+    dataloader = data.DataLoader(
+        dataset,
         shuffle=True,
         pin_memory=True,
+        drop_last=True,
         batch_size=BATCH_SIZE)
     print('Dataloader created')
 
@@ -134,31 +135,36 @@ if __name__ == '__main__':
     tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
     print('TensorboardX summary writer created')
 
+    # criterion defined
+    criterion = nn.CrossEntropyLoss()
+    print('Criterion defined')
+
     # start training!!
     print('Starting training...')
     total_steps = 1
     for epoch in range(NUM_EPOCHS):
         lr_scheduler.step()
-        for imgs, classes in imagenet_dataloader:
+        for imgs, classes in dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
             optimizer.zero_grad()
 
             # calculate the loss
             output = alexnet(imgs)
             loss = F.cross_entropy(output, classes)
-            # loss = F.nll_loss(F.log_softmax(output_logits, dim=1), target=classes)
-
-            # log the information and add to tensorboard
-            if total_steps % 10 == 0:
-                _, preds = torch.max(output, 1)
-                accuracy = torch.sum(preds == classes) / BATCH_SIZE
-
-                print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {:.4f}'
-                     .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
-                tbwriter.add_scalar('loss', loss.item(), total_steps)
+            # loss = F.nll_loss(F.log_softmax(output, dim=1), target=classes)
 
             # update the parameters
             loss.backward()
             optimizer.step()
+
+            # log the information and add to tensorboard
+            if total_steps % 10 == 0:
+                with torch.no_grad():
+                    _, preds = torch.max(output, 1)
+                    accuracy = torch.sum(preds == classes)
+
+                    print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
+                        .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
+                    tbwriter.add_scalar('loss', loss.item(), total_steps)
 
             total_steps += 1
