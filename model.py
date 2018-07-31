@@ -89,6 +89,7 @@ class AlexNet(nn.Module):
         return self.classifier(x)
 
 
+# initialize parameter weights
 def init_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.normal_(m.weight, mean=0, std=0.01)
@@ -106,7 +107,7 @@ if __name__ == '__main__':
 
     # create dataset and data loader
     dataset = datasets.ImageFolder(TRAIN_IMG_DIR, transforms.Compose([
-        transforms.RandomResizedCrop(IMAGE_DIM),
+        transforms.RandomResizedCrop(IMAGE_DIM, scale=(0.9, 1.0), ratio=(0.9, 1.1)),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
@@ -135,10 +136,6 @@ if __name__ == '__main__':
     tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
     print('TensorboardX summary writer created')
 
-    # criterion defined
-    criterion = nn.CrossEntropyLoss()
-    print('Criterion defined')
-
     # start training!!
     print('Starting training...')
     total_steps = 1
@@ -151,7 +148,6 @@ if __name__ == '__main__':
             # calculate the loss
             output = alexnet(imgs)
             loss = F.cross_entropy(output, classes)
-            # loss = F.nll_loss(F.log_softmax(output, dim=1), target=classes)
 
             # update the parameters
             loss.backward()
@@ -162,6 +158,10 @@ if __name__ == '__main__':
                 with torch.no_grad():
                     _, preds = torch.max(output, 1)
                     accuracy = torch.sum(preds == classes)
+
+                    # print the grad of the parameters
+                    for name, parameter in alexnet.named_parameters():
+                          print('{} - grad: {}'.format(name, parameter.grad))
 
                     print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
                         .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
