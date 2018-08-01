@@ -24,7 +24,7 @@ LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
 NUM_CLASSES = 1000  # 20 classes for VOC dataset - 1000 for original imagenet
-DEVICE_IDS = [0, 1]  # GPUs to use
+DEVICE_IDS = [0, 1, 2, 3]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = 'alexnet_data_in'
 TRAIN_IMG_DIR = 'alexnet_data_in/imagenet'
@@ -73,6 +73,15 @@ class AlexNet(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features=4096, out_features=num_classes),
         )
+        self.init_bias()  # initialize bias
+
+    def init_bias(self):
+        for layer in self.net:
+            nn.init.constant_(layer.bias, 0)
+        # original paper = 1 for Conv2d layers 2, 4, and 5
+        nn.init.constant_(self.net[4].bias, 1)
+        nn.init.constant_(self.net[10].bias, 1)
+        nn.init.constant_(self.net[12].bias, 1)
 
     def forward(self, x):
         """
@@ -93,7 +102,7 @@ class AlexNet(nn.Module):
 def init_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.normal_(m.weight, mean=0, std=0.01)
-        nn.init.constant_(m.bias, 1)
+        # nn.init.constant_(m.bias, 0.1)  
 
 
 if __name__ == '__main__':
@@ -159,12 +168,15 @@ if __name__ == '__main__':
                     _, preds = torch.max(output, 1)
                     accuracy = torch.sum(preds == classes)
 
-                    # print the grad of the parameters
-                    for name, parameter in alexnet.named_parameters():
-                          print('{} - grad: {}'.format(name, parameter.grad))
-
                     print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
                         .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
                     tbwriter.add_scalar('loss', loss.item(), total_steps)
+
+            # print out gradient values
+            if total_steps % 100 = 0:
+                with torch.no_grad():
+                    # print the grad of the parameters
+                    for name, parameter in alexnet.named_parameters():
+                          print('\t{} - grad_avg: {}'.format(name, torch.mean(parameter.grad)))
 
             total_steps += 1
