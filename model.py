@@ -23,7 +23,7 @@ MOMENTUM = 0.9
 LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
-NUM_CLASSES = 1000  # 20 classes for VOC dataset - 1000 for original imagenet
+NUM_CLASSES = 1000  # 1000 classes for imagenet 2012 dataset
 DEVICE_IDS = [0, 1, 2, 3]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = 'alexnet_data_in'
@@ -77,8 +77,10 @@ class AlexNet(nn.Module):
 
     def init_bias(self):
         for layer in self.net:
-            nn.init.constant_(layer.bias, 0)
-        # original paper = 1 for Conv2d layers 2, 4, and 5
+            if isinstance(layer, nn.Conv2d):
+                nn.init.normal_(m.weight, mean=0, std=0.01)
+                nn.init.constant_(layer.bias, 0)
+        # original paper = 1 for Conv2d layers 2nd, 4th, and 5th conv layers
         nn.init.constant_(self.net[4].bias, 1)
         nn.init.constant_(self.net[10].bias, 1)
         nn.init.constant_(self.net[12].bias, 1)
@@ -98,26 +100,19 @@ class AlexNet(nn.Module):
         return self.classifier(x)
 
 
-# initialize parameter weights
-def init_weights(m):
-    if isinstance(m, nn.Conv2d):
-        nn.init.normal_(m.weight, mean=0, std=0.01)
-        # nn.init.constant_(m.bias, 0.1)  
-
-
 if __name__ == '__main__':
     # create model
     alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
-    alexnet.apply(init_weights)
     print(alexnet)
     print('AlexNet created')
 
     # create dataset and data loader
     dataset = datasets.ImageFolder(TRAIN_IMG_DIR, transforms.Compose([
-        transforms.RandomResizedCrop(IMAGE_DIM, scale=(0.9, 1.0), ratio=(0.9, 1.1)),
-        transforms.RandomHorizontalFlip(),
+        # transforms.RandomResizedCrop(IMAGE_DIM, scale=(0.9, 1.0), ratio=(0.9, 1.1)),
+        transforms.CenterCrop(IMAGE_DIM),
+        # transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ]))
@@ -131,11 +126,14 @@ if __name__ == '__main__':
     print('Dataloader created')
 
     # create optimizer
-    optimizer = optim.SGD(
-        params=alexnet.parameters(),
-        lr=LR_INIT,
-        momentum=MOMENTUM,
-        weight_decay=LR_DECAY)
+    # the one that WORKS
+    optimizer = optim.Adam(params=alexnet.parameters(), lr=0.0001)   
+    ### BELOW is the setting proposed by the original paper - which doesn't train....
+    # optimizer = optim.SGD(
+    #     params=alexnet.parameters(),
+    #     lr=LR_INIT,
+    #     momentum=MOMENTUM,
+    #     weight_decay=LR_DECAY)
     print('Optimizer created')
 
     # multiply LR by 1 / 10 after every 30 epochs
@@ -172,11 +170,14 @@ if __name__ == '__main__':
                         .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
                     tbwriter.add_scalar('loss', loss.item(), total_steps)
 
-            # print out gradient values
-            if total_steps % 100 = 0:
+            # print out gradient values and parameter average values
+            if total_steps % 100 == 0:
                 with torch.no_grad():
                     # print the grad of the parameters
                     for name, parameter in alexnet.named_parameters():
                           print('\t{} - grad_avg: {}'.format(name, torch.mean(parameter.grad)))
+                    # print parameter values
+                    for name, parameter in alexnet.named_parameters():
+                          print('\t{} - param_avg: {}'.format(name, torch.mean(parameter.data)))
 
             total_steps += 1
