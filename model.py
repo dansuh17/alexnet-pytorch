@@ -24,7 +24,7 @@ LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
 NUM_CLASSES = 1000  # 1000 classes for imagenet 2012 dataset
-DEVICE_IDS = [0, 1, 2, 3]  # GPUs to use
+DEVICE_IDS = [0, 1, 2, 3, 4, 5, 6, 7]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = 'alexnet_data_in'
 TRAIN_IMG_DIR = 'alexnet_data_in/imagenet'
@@ -101,6 +101,10 @@ class AlexNet(nn.Module):
 
 
 if __name__ == '__main__':
+    # print the seed value
+    seed = torch.initial_seed()
+    print('Used seed : {}'.format(seed))
+
     # create model
     alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
@@ -169,15 +173,22 @@ if __name__ == '__main__':
                     print('Epoch: {} \tStep: {} \tLoss: {:.4f} \tAcc: {}'
                         .format(epoch + 1, total_steps, loss.item(), accuracy.item()))
                     tbwriter.add_scalar('loss', loss.item(), total_steps)
+                    tbwriter.add_scalar('accuracy', accuracy.item(), total_steps)
 
             # print out gradient values and parameter average values
             if total_steps % 100 == 0:
                 with torch.no_grad():
                     # print the grad of the parameters
+                    print('*' * 10)
                     for name, parameter in alexnet.named_parameters():
-                          print('\t{} - grad_avg: {}'.format(name, torch.mean(parameter.grad)))
+                          avg_grad = torch.mean(parameter.grad)
+                          print('\t{} - grad_avg: {}'.format(name, avg_grad))
+                          tbwriter.add_scalar('grad_{}'.format(name), avg_grad.item(), total_steps)
                     # print parameter values
+                    print('*' * 10)
                     for name, parameter in alexnet.named_parameters():
-                          print('\t{} - param_avg: {}'.format(name, torch.mean(parameter.data)))
+                          avg_weight = torch.mean(parameter.data)
+                          print('\t{} - param_avg: {}'.format(name, avg_weight))
+                          tbwriter.add_scalar('weight_{}'.format(name), avg_weight.item(), total_steps)
 
             total_steps += 1
