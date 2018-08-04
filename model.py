@@ -109,6 +109,7 @@ if __name__ == '__main__':
     alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
+    tbwriter.add_graph(alexnet, (torch.rand(1, 3, 227, 227), ))  # add graph to tensorboard
     print(alexnet)
     print('AlexNet created')
 
@@ -178,17 +179,18 @@ if __name__ == '__main__':
             # print out gradient values and parameter average values
             if total_steps % 100 == 0:
                 with torch.no_grad():
-                    # print the grad of the parameters
+                    # print and save the grad of the parameters
+                    # also print and save parameter values
                     print('*' * 10)
                     for name, parameter in alexnet.named_parameters():
                           avg_grad = torch.mean(parameter.grad)
-                          print('\t{} - grad_avg: {}'.format(name, avg_grad))
-                          tbwriter.add_scalar('grad_{}'.format(name), avg_grad.item(), total_steps)
-                    # print parameter values
-                    print('*' * 10)
-                    for name, parameter in alexnet.named_parameters():
                           avg_weight = torch.mean(parameter.data)
+                          print('\t{} - grad_avg: {}'.format(name, avg_grad))
+                          print('*' * 10)
                           print('\t{} - param_avg: {}'.format(name, avg_weight))
-                          tbwriter.add_scalar('weight_{}'.format(name), avg_weight.item(), total_steps)
+                          tbwriter.add_histogram('grad/{}'.format(name), parameter.grad.numpy(), total_steps)
+                          tbwriter.add_histogram('weight/{}'.format(name), parameter.data.numpy(), total_steps)
+                          tbwriter.add_scalar('grad_avg/{}'.format(name), avg_grad.item(), total_steps)
+                          tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
 
             total_steps += 1
