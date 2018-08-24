@@ -24,11 +24,13 @@ LR_DECAY = 0.0005
 LR_INIT = 0.01
 IMAGE_DIM = 227  # pixels
 NUM_CLASSES = 1000  # 1000 classes for imagenet 2012 dataset
-DEVICE_IDS = [0, 1, 2, 3, 4, 5, 6, 7]  # GPUs to use
+DEVICE_IDS = [0, 1, 2, 3]  # GPUs to use
 # modify this to point to your data directory
 INPUT_ROOT_DIR = 'alexnet_data_in'
 TRAIN_IMG_DIR = 'alexnet_data_in/imagenet'
-OUTPUT_DIR = 'alexnet_data_out/tblogs'  # tensorboard logs
+OUTPUT_DIR = 'alexnet_data_out'
+LOG_DIR = OUTPUT_DIR + '/tblogs'  # tensorboard logs
+CHECKPOINT_DIR = OUTPUT_DIR + '/models'  # model checkpoints
 
 
 class AlexNet(nn.Module):
@@ -132,7 +134,7 @@ if __name__ == '__main__':
 
     # create optimizer
     # the one that WORKS
-    optimizer = optim.Adam(params=alexnet.parameters(), lr=0.0001)   
+    optimizer = optim.Adam(params=alexnet.parameters(), lr=0.0001)
     ### BELOW is the setting proposed by the original paper - which doesn't train....
     # optimizer = optim.SGD(
     #     params=alexnet.parameters(),
@@ -145,7 +147,7 @@ if __name__ == '__main__':
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     print('LR Scheduler created')
 
-    tbwriter = SummaryWriter(log_dir=OUTPUT_DIR)
+    tbwriter = SummaryWriter(log_dir=LOG_DIR)
     print('TensorboardX summary writer created')
 
     # start training!!
@@ -188,9 +190,22 @@ if __name__ == '__main__':
                           print('\t{} - grad_avg: {}'.format(name, avg_grad))
                           print('*' * 10)
                           print('\t{} - param_avg: {}'.format(name, avg_weight))
-                          tbwriter.add_histogram('grad/{}'.format(name), parameter.grad.numpy(), total_steps)
-                          tbwriter.add_histogram('weight/{}'.format(name), parameter.data.numpy(), total_steps)
+                          tbwriter.add_histogram('grad/{}'.format(name),
+                                  parameter.grad.cpu().numpy(), total_steps)
+                          tbwriter.add_histogram('weight/{}'.format(name),
+                                  parameter.data.cpu().numpy(), total_steps)
                           tbwriter.add_scalar('grad_avg/{}'.format(name), avg_grad.item(), total_steps)
                           tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
+
+            # save checkpoints
+            checkpoint_path = os.path.join(CHECKPOINT_DIR, 'alexnet_states_e{}.pkl'.format(epoch + 1))
+            state = {
+                'epoch': epoch,
+                'total_steps': total_steps,
+                'optimizer': optimizer.state_dict(),
+                'model': alexnet.state_dict(),
+                'seed': seed,
+            }
+            torch.save(state, checkpoint_path)
 
             total_steps += 1
