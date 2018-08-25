@@ -80,7 +80,7 @@ class AlexNet(nn.Module):
     def init_bias(self):
         for layer in self.net:
             if isinstance(layer, nn.Conv2d):
-                nn.init.normal_(m.weight, mean=0, std=0.01)
+                nn.init.normal_(layer.weight, mean=0, std=0.01)
                 nn.init.constant_(layer.bias, 0)
         # original paper = 1 for Conv2d layers 2nd, 4th, and 5th conv layers
         nn.init.constant_(self.net[4].bias, 1)
@@ -106,6 +106,9 @@ if __name__ == '__main__':
     # print the seed value
     seed = torch.initial_seed()
     print('Used seed : {}'.format(seed))
+
+    tbwriter = SummaryWriter(log_dir=LOG_DIR)
+    print('TensorboardX summary writer created')
 
     # create model
     alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
@@ -146,9 +149,6 @@ if __name__ == '__main__':
     # multiply LR by 1 / 10 after every 30 epochs
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
     print('LR Scheduler created')
-
-    tbwriter = SummaryWriter(log_dir=LOG_DIR)
-    print('TensorboardX summary writer created')
 
     # start training!!
     print('Starting training...')
