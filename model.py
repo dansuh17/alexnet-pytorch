@@ -4,6 +4,7 @@ Implementation of AlexNet, from paper
 
 See: https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
 """
+import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -114,7 +115,6 @@ if __name__ == '__main__':
     alexnet = AlexNet(num_classes=NUM_CLASSES).to(device)
     # train on multiple GPUs
     alexnet = torch.nn.parallel.DataParallel(alexnet, device_ids=DEVICE_IDS)
-    tbwriter.add_graph(alexnet, (torch.rand(1, 3, 227, 227), ))  # add graph to tensorboard
     print(alexnet)
     print('AlexNet created')
 
@@ -185,17 +185,18 @@ if __name__ == '__main__':
                     # also print and save parameter values
                     print('*' * 10)
                     for name, parameter in alexnet.named_parameters():
-                          avg_grad = torch.mean(parameter.grad)
-                          avg_weight = torch.mean(parameter.data)
-                          print('\t{} - grad_avg: {}'.format(name, avg_grad))
-                          print('*' * 10)
-                          print('\t{} - param_avg: {}'.format(name, avg_weight))
-                          tbwriter.add_histogram('grad/{}'.format(name),
-                                  parameter.grad.cpu().numpy(), total_steps)
-                          tbwriter.add_histogram('weight/{}'.format(name),
-                                  parameter.data.cpu().numpy(), total_steps)
-                          tbwriter.add_scalar('grad_avg/{}'.format(name), avg_grad.item(), total_steps)
-                          tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
+                        if parameter.grad is not None:
+                            avg_grad = torch.mean(parameter.grad)
+                            print('\t{} - grad_avg: {}'.format(name, avg_grad))
+                            tbwriter.add_scalar('grad_avg/{}'.format(name), avg_grad.item(), total_steps)
+                            tbwriter.add_histogram('grad/{}'.format(name),
+                                    parameter.grad.cpu().numpy(), total_steps)
+                        if parameter.data is not None:
+                            avg_weight = torch.mean(parameter.data)
+                            print('\t{} - param_avg: {}'.format(name, avg_weight))
+                            tbwriter.add_histogram('weight/{}'.format(name),
+                                    parameter.data.cpu().numpy(), total_steps)
+                            tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
 
             # save checkpoints
             checkpoint_path = os.path.join(CHECKPOINT_DIR, 'alexnet_states_e{}.pkl'.format(epoch + 1))
