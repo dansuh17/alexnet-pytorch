@@ -1,4 +1,6 @@
-# AlexNet-pytorch
+# Pytorch implementation of AlexNet
+
+- Now compatible with `pytorch==0.4.0`
 
 This is an implementaiton of AlexNet, as introduced in the paper "ImageNet Classification with Deep Convolutional Neural Networks" by Alex Krizhevsky et al. ([original paper](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf))
 
