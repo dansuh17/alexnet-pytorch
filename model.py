@@ -134,6 +134,7 @@ if __name__ == '__main__':
         dataset,
         shuffle=True,
         pin_memory=True,
+        num_workers=8,
         drop_last=True,
         batch_size=BATCH_SIZE)
     print('Dataloader created')
@@ -160,13 +161,13 @@ if __name__ == '__main__':
         lr_scheduler.step()
         for imgs, classes in dataloader:
             imgs, classes = imgs.to(device), classes.to(device)
-            optimizer.zero_grad()
 
             # calculate the loss
             output = alexnet(imgs)
             loss = F.cross_entropy(output, classes)
 
             # update the parameters
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
