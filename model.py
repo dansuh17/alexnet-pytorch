@@ -33,6 +33,9 @@ OUTPUT_DIR = 'alexnet_data_out'
 LOG_DIR = OUTPUT_DIR + '/tblogs'  # tensorboard logs
 CHECKPOINT_DIR = OUTPUT_DIR + '/models'  # model checkpoints
 
+# make checkpoint path directory
+os.makedirs(CHECKPOINT_DIR, exist_ok=True)
+
 
 class AlexNet(nn.Module):
     """
@@ -198,15 +201,15 @@ if __name__ == '__main__':
                                     parameter.data.cpu().numpy(), total_steps)
                             tbwriter.add_scalar('weight_avg/{}'.format(name), avg_weight.item(), total_steps)
 
-            # save checkpoints
-            checkpoint_path = os.path.join(CHECKPOINT_DIR, 'alexnet_states_e{}.pkl'.format(epoch + 1))
-            state = {
-                'epoch': epoch,
-                'total_steps': total_steps,
-                'optimizer': optimizer.state_dict(),
-                'model': alexnet.state_dict(),
-                'seed': seed,
-            }
-            torch.save(state, checkpoint_path)
-
             total_steps += 1
+
+        # save checkpoints
+        checkpoint_path = os.path.join(CHECKPOINT_DIR, 'alexnet_states_e{}.pkl'.format(epoch + 1))
+        state = {
+            'epoch': epoch,
+            'total_steps': total_steps,
+            'optimizer': optimizer.state_dict(),
+            'model': alexnet.state_dict(),
+            'seed': seed,
+        }
+        torch.save(state, checkpoint_path)
