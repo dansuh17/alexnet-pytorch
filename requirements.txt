@@ -1,5 +1,5 @@
 numpy==1.14.5
-Pillow==6.2.0
+Pillow==8.1.1
 protobuf==3.6.0
 six==1.11.0
 tensorboardX==1.2
